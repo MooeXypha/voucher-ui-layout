@@ -1,19 +1,19 @@
 import { useState } from 'react';
 
 import {
+  Grid,
   Dialog,
+  Button,
+  Checkbox,
+  MenuItem,
+  TextField,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  TextField,
   FormControlLabel,
-  Checkbox,
-  MenuItem,
-  Grid,
 } from '@mui/material';
 
-import { VoucherProps } from './voucher-table-row';
+import type { VoucherProps } from './voucher-table-row';
 
 type VoucherCreateFormProps = {
   open: boolean;

@@ -24,8 +24,8 @@
     "tsc:print": "npx tsc --showConfig"
   },
   "engines": {
-    "node": ">=20"
-  },
+  "node": "20.x"
+},
   "packageManager": "yarn@1.22.22",
   "dependencies": {
     "@emotion/cache": "^11.14.0",

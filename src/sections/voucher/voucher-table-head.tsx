@@ -1,11 +1,12 @@
+import Box from '@mui/material/Box';
+import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
-import Checkbox from '@mui/material/Checkbox';
-import Box from '@mui/material/Box';
 
 import { visuallyHidden } from './utils';
+
 import type { VoucherProps } from './voucher-table-row.tsx';
 
 export type VoucherHeadLabel = {
