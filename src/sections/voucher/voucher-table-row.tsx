@@ -31,9 +31,19 @@ type VoucherTableRowProps = {
   row: VoucherProps;
   selected: boolean;
   onSelectRow: () => void;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 };
 
-export function VoucherTableRow({ row, selected, onSelectRow }: VoucherTableRowProps) {
+export function VoucherTableRow({
+  row,
+  selected,
+  onSelectRow,
+  onView,
+  onEdit,
+  onDelete,
+}: VoucherTableRowProps) {
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -96,7 +106,7 @@ export function VoucherTableRow({ row, selected, onSelectRow }: VoucherTableRowP
           sx={{
             p: 0.5,
             gap: 0.5,
-            width: 140,
+            width: 160,
             display: 'flex',
             flexDirection: 'column',
             [`& .${menuItemClasses.root}`]: {
@@ -107,12 +117,33 @@ export function VoucherTableRow({ row, selected, onSelectRow }: VoucherTableRowP
             },
           }}
         >
-          <MenuItem onClick={handleClosePopover}>
+          <MenuItem
+            onClick={() => {
+              handleClosePopover();
+              onView();
+            }}
+          >
+            <Iconify icon="solar:eye-bold" />
+            View slip
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              handleClosePopover();
+              onEdit();
+            }}
+          >
             <Iconify icon="solar:pen-bold" />
             Edit
           </MenuItem>
 
-          <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
+          <MenuItem
+            onClick={() => {
+              handleClosePopover();
+              onDelete();
+            }}
+            sx={{ color: 'error.main' }}
+          >
             <Iconify icon="solar:trash-bin-trash-bold" />
             Delete
           </MenuItem>

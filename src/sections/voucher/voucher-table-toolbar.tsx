@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
@@ -19,8 +17,6 @@ type Props = {
 };
 
 export function VoucherTableToolbar({ numSelected, filterName, onFilterName }: Props) {
-  const [open, setOpen] = useState(false);
-
   return (
     <Toolbar
       sx={{

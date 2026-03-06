@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import {
   Grid,
@@ -18,26 +18,63 @@ import type { VoucherProps } from './voucher-table-row';
 type VoucherCreateFormProps = {
   open: boolean;
   onClose: () => void;
-  onCreate: (voucher: Omit<VoucherProps, 'id'>) => void;
+  onSubmit: (voucher: Omit<VoucherProps, 'id'>) => void;
+  initialData?: VoucherProps | null;
+  title?: string;
+  submitButtonText?: string;
 };
 
 const serviceTypes = ['Account Sell', 'Account Service', 'Account Bank Service', 'Account Boosting'];
-const accountCategories = ['Over 15k', 'Under 15k'];
+const accountCategories = ['Over 15k', 'Under 15k', 'Other Service'];
 const paymentMethods = ['K Pay', 'Wave Pay', 'Thai Bhat', 'Cash'];
 
-export function VoucherCreateForm({ open, onClose, onCreate }: VoucherCreateFormProps) {
+const emptyFormData = {
+  buyerName: '',
+  buyerPhoneNumber: '',
+  serviceType: '',
+  accountCategory: '',
+  accountUserName: '',
+  amountPaid: '',
+  prepaid: false,
+  paymentMethod: '',
+  paymentDate: '',
+  remark: '',
+};
+
+export function VoucherCreateForm({
+  open,
+  onClose,
+  onSubmit,
+  initialData = null,
+  title = 'Create New Voucher',
+  submitButtonText = 'Create',
+}: VoucherCreateFormProps) {
   const [formData, setFormData] = useState({
-    buyerName: '',
-    buyerPhoneNumber: '',
-    serviceType: '',
-    accountCategory: '',
-    accountUserName: '',
-    amountPaid: '',
-    prepaid: false,
-    paymentMethod: '',
-    paymentDate: '',
-    remark: '',
+    ...emptyFormData,
   });
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialData) {
+      setFormData({
+        buyerName: initialData.buyerName,
+        buyerPhoneNumber: initialData.buyerPhoneNumber,
+        serviceType: initialData.serviceType,
+        accountCategory: initialData.accountCategory,
+        accountUserName: initialData.accountUserName,
+        amountPaid: String(initialData.amountPaid),
+        prepaid: initialData.prepaid,
+        paymentMethod: initialData.paymentMethod,
+        paymentDate: initialData.paymentDate,
+        remark: initialData.remark || '',
+      });
+    } else {
+      setFormData({ ...emptyFormData });
+    }
+
+    setErrors({});
+  }, [initialData, open]);
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -90,30 +127,19 @@ export function VoucherCreateForm({ open, onClose, onCreate }: VoucherCreateForm
       ...(formData.remark && { remark: formData.remark }),
     };
 
-    onCreate(voucher);
+    onSubmit(voucher);
     handleClose();
   };
 
   const handleClose = () => {
-    setFormData({
-      buyerName: '',
-      buyerPhoneNumber: '',
-      serviceType: '',
-      accountCategory: '',
-      accountUserName: '',
-      amountPaid: '',
-      prepaid: false,
-      paymentMethod: '',
-      paymentDate: '',
-      remark: '',
-    });
+    setFormData({ ...emptyFormData });
     setErrors({});
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create New Voucher</DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -266,7 +292,7 @@ export function VoucherCreateForm({ open, onClose, onCreate }: VoucherCreateForm
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained">
-          Create
+          {submitButtonText}
         </Button>
       </DialogActions>
     </Dialog>

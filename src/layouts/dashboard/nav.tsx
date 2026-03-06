@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import ListItem from '@mui/material/ListItem';
 import { useTheme } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
 import ListItemButton from '@mui/material/ListItemButton';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 
@@ -112,7 +114,20 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
 
   return (
     <>
-      <Logo />
+      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1 }}>
+        <Logo />
+        <Typography
+          variant="subtitle2"
+          sx={(theme) => ({
+            fontWeight: theme.typography.fontWeightSemiBold,
+            color: theme.vars.palette.text.primary,
+            lineHeight: 1.2,
+            maxWidth: 150,
+          })}
+        >
+          Pig & Bear Admin Portal
+        </Typography>
+      </Stack>
 
       {slots?.topArea}
 
