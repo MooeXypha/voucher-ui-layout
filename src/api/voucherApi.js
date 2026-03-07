@@ -2,8 +2,23 @@ const RAW_BASE_URL = String(import.meta.env.VITE_API_URL || '').trim();
 
 function normalizeBaseUrl(value) {
   if (!value) return '';
+
+  // Respect explicit scheme when provided.
   if (value.startsWith('http://') || value.startsWith('https://')) return value;
-  return `http://${value}`;
+
+  // Support protocol-relative values like //api.example.com.
+  if (value.startsWith('//')) {
+    const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+    return `${protocol}${value}`;
+  }
+
+  // When no scheme is provided, prefer current page protocol in browser
+  // to avoid mixed-content errors on https deployments.
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${value}`;
+  }
+
+  return `https://${value}`;
 }
 
 function getDevFallbackBaseUrl() {
@@ -16,6 +31,20 @@ const BASE_URL = normalizeBaseUrl(RAW_BASE_URL) || getDevFallbackBaseUrl();
 function resolveRequestUrl(path) {
   if (!BASE_URL) return path;
   return new URL(path, BASE_URL).toString();
+}
+
+function resolveCandidateBaseUrls() {
+  const baseUrls = [];
+
+  if (BASE_URL) {
+    baseUrls.push(BASE_URL);
+  }
+
+  // Always try same-origin as a fallback. This prevents hard failures when
+  // VITE_API_URL points to an unreachable host/port in production.
+  baseUrls.push('');
+
+  return Array.from(new Set(baseUrls));
 }
 
 function extractErrorMessage(responseData) {
@@ -34,58 +63,91 @@ function extractErrorMessage(responseData) {
 }
 
 function resolveCandidatePaths(path) {
-  if (path.startsWith('/api/')) return [path];
-  return [path, `/api${path}`];
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const isApiPath = normalizedPath.startsWith('/api/');
+  const pathWithoutApi = isApiPath ? normalizedPath.replace(/^\/api/, '') : normalizedPath;
+
+  let singularOrPluralVariant = pathWithoutApi;
+  if (/^\/vouchers(\/|$)/.test(pathWithoutApi)) {
+    singularOrPluralVariant = pathWithoutApi.replace(/^\/vouchers(\/|$)/, '/voucher$1');
+  } else if (/^\/voucher(\/|$)/.test(pathWithoutApi)) {
+    singularOrPluralVariant = pathWithoutApi.replace(/^\/voucher(\/|$)/, '/vouchers$1');
+  }
+
+  const candidates = [
+    normalizedPath,
+    isApiPath ? pathWithoutApi : `/api${pathWithoutApi}`,
+    singularOrPluralVariant,
+    `/api${singularOrPluralVariant}`,
+  ];
+
+  return Array.from(new Set(candidates));
 }
 
 async function request(method, path, { params, data } = {}) {
   const candidatePaths = resolveCandidatePaths(path);
+  const candidateBaseUrls = resolveCandidateBaseUrls();
   let lastError;
 
-  for (const candidatePath of candidatePaths) {
-    const requestUrl = new URL(resolveRequestUrl(candidatePath), window.location.origin);
+  for (const candidateBaseUrl of candidateBaseUrls) {
+    for (const candidatePath of candidatePaths) {
+      const absolutePath = candidateBaseUrl
+        ? new URL(candidatePath, candidateBaseUrl).toString()
+        : candidatePath;
 
-    if (params && typeof params === 'object') {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        requestUrl.searchParams.append(key, String(value));
-      });
-    }
+      const requestUrl = new URL(absolutePath, window.location.origin);
 
-    try {
-      const response = await fetch(requestUrl.toString(), {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        ...(data ? { body: JSON.stringify(data) } : {}),
-      });
-
-      const contentType = response.headers.get('content-type') || '';
-      const responseData = contentType.includes('application/json')
-        ? await response.json()
-        : await response.text();
-
-      if (!response.ok) {
-        const parsedMessage = extractErrorMessage(responseData);
-        const statusMessage = `${response.status} ${response.statusText}`.trim();
-        const errorMessage = parsedMessage || statusMessage || 'Request failed';
-
-        // If route likely needs /api prefix, retry with the next candidate.
-        if (response.status === 404 && candidatePath === path && candidatePaths.length > 1) {
-          lastError = new Error(errorMessage);
-          continue;
-        }
-
-        throw new Error(errorMessage);
+      if (params && typeof params === 'object') {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+          requestUrl.searchParams.append(key, String(value));
+        });
       }
 
-      return {
-        data: responseData,
-        status: response.status,
-      };
-    } catch (error) {
-      lastError = error;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+
+        let response;
+        try {
+          response = await fetch(requestUrl.toString(), {
+            method,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+            ...(data ? { body: JSON.stringify(data) } : {}),
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        const responseData = contentType.includes('application/json')
+          ? await response.json()
+          : await response.text();
+
+        if (!response.ok) {
+          const parsedMessage = extractErrorMessage(responseData);
+          const statusMessage = `${response.status} ${response.statusText}`.trim();
+          const errorMessage = parsedMessage || statusMessage || 'Request failed';
+
+          // If route likely needs /api prefix, retry with the next candidate path.
+          if (response.status === 404 && candidatePath === path && candidatePaths.length > 1) {
+            lastError = new Error(errorMessage);
+            continue;
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        return {
+          data: responseData,
+          status: response.status,
+        };
+      } catch (error) {
+        lastError = error;
+      }
     }
   }
 
