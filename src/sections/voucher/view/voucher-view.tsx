@@ -393,21 +393,19 @@ function mapVoucherRow(item: unknown): VoucherProps | null {
   if (!item || typeof item !== 'object') return null;
 
   const row = item as Record<string, unknown>;
-  const buyerName = getString(row, ['buyerName']);
-  const buyerPhoneNumber = getString(row, ['buyerPhoneNumber', 'buyer_phone_number']);
-  const serviceType = getString(row, ['serviceType', 'service_type']);
-  const accountCategory = getString(row, ['accountCategory', 'account_category']);
-  const accountUserName = getString(row, ['accountUserName', 'account_username']);
-
-  if (!buyerName || !buyerPhoneNumber || !serviceType || !accountCategory || !accountUserName) {
-    return null;
-  }
+  const buyerName = getString(row, ['buyerName', 'buyer_name']) || '-';
+  const buyerPhoneNumber = getString(row, ['buyerPhoneNumber', 'buyer_phone_number', 'phone']) || '-';
+  const serviceType = getString(row, ['serviceType', 'service_type']) || '-';
+  const accountCategory = getString(row, ['accountCategory', 'account_category']) || '-';
+  const accountUserName =
+    getString(row, ['accountUserName', 'account_username', 'accountUsrName', 'account_usr_name']) ||
+    '-';
 
   const id = String(row.id ?? row._id ?? row.voucherId ?? row.voucher_id ?? buyerName);
   const amountPaid = getNumber(row, ['amountPaid', 'amount_paid']);
   const prepaid = getBoolean(row, ['prepaid']);
-  const paymentMethod = getString(row, ['paymentMethod', 'payment_method']);
-  const paymentDate = getString(row, ['paymentDate', 'payment_date']);
+  const paymentMethod = getString(row, ['paymentMethod', 'payment_method']) || '-';
+  const paymentDate = getString(row, ['paymentDate', 'payment_date']) || '';
   const remark = getOptionalString(row, ['remark']);
 
   return {
@@ -428,6 +426,11 @@ function mapVoucherRow(item: unknown): VoucherProps | null {
 function getString(source: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const value = source[key];
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
     if (typeof value === 'string' && value.trim()) return value;
   }
   return '';
