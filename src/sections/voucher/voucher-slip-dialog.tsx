@@ -342,12 +342,18 @@ async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: str
     throw new Error('Voucher slip content is not ready yet.');
   }
 
+  // Force a desktop-sized render context so PDF keeps the same layout on mobile.
+  const PDF_RENDER_WIDTH = 1280;
+  const PDF_RENDER_HEIGHT = 900;
+
   const canvas = await html2canvas(target, {
     backgroundColor: '#fffaf7',
     scale: 2,
     useCORS: true,
-    windowWidth: document.documentElement.clientWidth,
-    windowHeight: document.documentElement.clientHeight,
+    windowWidth: PDF_RENDER_WIDTH,
+    windowHeight: PDF_RENDER_HEIGHT,
+    scrollX: 0,
+    scrollY: 0,
   });
 
   const imageData = canvas.toDataURL('image/png');
