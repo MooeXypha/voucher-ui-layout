@@ -3,18 +3,13 @@ import { useRef } from 'react';
 import html2canvas from 'html2canvas';
 
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-
-import { fCurrency } from 'src/utils/format-number';
 
 import masterLogo from 'src/components/logo/master.jpg';
 
@@ -28,8 +23,12 @@ type VoucherSlipDialogProps = {
 
 const BRAND = {
   name: 'Pig & Bear (Official Account)',
-  description: 'Tiktok Account အရောင်းအဝယ် / Account ပိုင်းဆိုင်ရာ Service နှင့် Boosting လုပ်ခြင်း Service များကို အာမခံ အပြည့်နှင့် ဆောင်ရွက်ပေးပါသည်။',
+  address:
+    'Tiktok Account ရောင်းဝယ်ခြင်း/ Account Service လုပ်ဆောင်ပေးခြင်း /ဘဏ်ချိတ်Service လုပ်ဆောင်ပေးခြင်း / Account Boosting Service လုပ်ဆောင်ပေးခြင်း',
 };
+
+const THANK_YOU_LINE =
+  'Thank you for choosing our service! Please contact Telegram link @aliceMooe25 if you have any questions or need assistance';
 
 export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogProps) {
   const slipRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +36,8 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
   if (!voucher) return null;
 
   const safeVoucherId = getSafeVoucherId(voucher.id);
+  const amountPaid = formatMmk(voucher.amountPaid);
+
   const handlePreviewPdf = async () => {
     try {
       const { blob } = await generateSlipPdf(slipRef.current, safeVoucherId);
@@ -53,28 +54,36 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
 
   const handleDownloadPdf = async () => {
     try {
-      const { pdf } = await generateSlipPdf(slipRef.current, safeVoucherId);
-      pdf.save(`voucher-${sanitizeFileName(safeVoucherId)}.pdf`);
+      const fileName = `voucher-${sanitizeFileName(safeVoucherId)}.pdf`;
+      const { pdf, blob } = await generateSlipPdf(slipRef.current, safeVoucherId);
+
+      if (isMobileDevice()) {
+        const handled = await trySharePdf(blob, fileName);
+        if (!handled) {
+          openPdfBlob(blob);
+        }
+        return;
+      }
+
+      pdf.save(fileName);
     } catch (error) {
       console.error('Failed to download voucher PDF:', error);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ pb: 1 }}>Voucher Slip Detail</DialogTitle>
 
       <DialogContent sx={{ pb: 3 }}>
         <Box
           ref={slipRef}
           sx={{
-            p: 3,
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: '#f8bbd0',
-            boxShadow: '0 16px 32px rgba(173, 20, 87, 0.12)',
-            background:
-              'linear-gradient(180deg, #fff7fb 0%, #ffe4f0 45%, #ffd7e8 100%)',
+            p: { xs: 2, sm: 3 },
+            borderRadius: 2,
+            border: '1px solid #efb090',
+            boxShadow: '0 8px 24px rgba(146, 72, 35, 0.15)',
+            background: '#fffaf7',
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -82,38 +91,49 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
           <Box
             sx={{
               position: 'absolute',
-              top: -34,
-              right: -34,
-              width: 140,
-              height: 140,
+              top: -48,
+              left: -48,
+              width: 120,
+              height: 120,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(244, 143, 177, 0.55) 0%, rgba(244, 143, 177, 0) 70%)',
+              background: 'radial-gradient(circle, rgba(234, 169, 134, 0.45) 0%, rgba(234, 169, 134, 0) 72%)',
               pointerEvents: 'none',
             }}
           />
 
           <Box
             sx={{
-              p: 2.25,
-              mb: 2,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #ec407a 0%, #d81b60 60%, #ad1457 100%)',
-              color: '#fff',
+              position: 'absolute',
+              right: -42,
+              bottom: -36,
+              width: 130,
+              height: 130,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(234, 169, 134, 0.4) 0%, rgba(234, 169, 134, 0) 72%)',
+              pointerEvents: 'none',
             }}
+          />
+
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            justifyContent="space-between"
+            spacing={2}
+            sx={{ mb: 2.5, pb: 1.25, borderBottom: '1px solid #edc2a9' }}
           >
-            <Stack
-              alignItems="center"
-              justifyContent="center"
-              spacing={1.5}
-              textAlign="center"
-            >
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
               <Box
                 sx={{
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: 1.75,
-                  bgcolor: 'rgba(255, 255, 255, 0.16)',
-                  border: '1px solid rgba(255, 255, 255, 0.28)',
+                  width: { xs: 84, sm: 100 },
+                  height: { xs: 84, sm: 100 },
+                  p: 0.5,
+                  borderRadius: '50%',
+                  border: '1px solid #e2b191',
+                  bgcolor: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0,
                 }}
               >
                 <Box
@@ -121,147 +141,83 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
                   src={masterLogo}
                   alt="Master logo"
                   sx={{
-                    width: { xs: 150, sm: 190 },
-                    height: { xs: 52, sm: 66 },
-                    objectFit: 'contain',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
                     display: 'block',
                   }}
                 />
               </Box>
 
-              <Box>
-                <Typography variant="h6" sx={{ color: '#fff', lineHeight: 1.2 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="h6" sx={{ color: '#8b4519', lineHeight: 1.1, fontWeight: 800 }}>
                   {BRAND.name}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'rgba(255, 255, 255, 0.9)', mt: 0.25, maxWidth: 360, mx: 'auto' }}
-                >
-                  {BRAND.description}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  px: 2,
-                  py: 1.25,
-                  borderRadius: 1.75,
-                  bgcolor: '#fff',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  width: { xs: '100%', sm: 'auto' },
-                  maxWidth: 320,
-                  boxShadow: '0 8px 18px rgba(122, 7, 62, 0.25)',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: '#ad1457', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}
-                >
-                  Voucher ID
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mt: 0.25,
-                    fontWeight: 800,
-                    color: '#880e4f',
-                    letterSpacing: 0.5,
-                    fontFamily: 'monospace',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {safeVoucherId}
+                <Typography variant="body2" sx={{ color: '#7a5032', mt: 0.25 }}>
+                  {BRAND.address}
                 </Typography>
               </Box>
             </Stack>
-          </Box>
 
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="subtitle2" sx={{ color: '#880e4f', letterSpacing: 0.3 }}>
-                Customer Payment Details
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#6a1b4d' }}>
-                Service အပ်နှံခြင်းနှင့် ဝယ်ယူအားပေးခြင်းများအတွက် ကျေးဇူးတင်ပါသည်။ တစုံတခု အဆင်မပြေဖြစ်ပါက ကျွန်ုပ်တို့၏ Support Team Telegram &quot;@alicemooe&quot; သို့ ဆက်သွယ်ရန် မမေ့ပါနှင့်။ Voucher slip ရှိနေမှသာ အာမခံအပြည့် ရရှိမည်ဖြစ်သည်။
-              </Typography>
-            </Box>
-            <Chip
-              label={voucher.prepaid ? 'Prepaid' : 'Not Prepaid'}
-              color={voucher.prepaid ? 'secondary' : 'default'}
-              variant={voucher.prepaid ? 'filled' : 'outlined'}
-              size="small"
-              sx={{ fontWeight: 700 }}
-            />
+            <Stack spacing={1} sx={{ width: { xs: '100%', sm: 220 }, flexShrink: 0 }}>
+              <Box sx={{ border: '1px solid #e8b89a', minHeight: 46, px: 1.25, py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: '#7a3f1f', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  No.: {safeVoucherId}
+                </Typography>
+              </Box>
+
+              <Box sx={{ border: '1px solid #e8b89a', minHeight: 46, px: 1.25, py: 0.75 }}>
+                <Typography variant="body2" sx={{ color: '#7a3f1f', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Date: {voucher.paymentDate || '-'}
+                </Typography>
+              </Box>
+            </Stack>
           </Stack>
 
-          <Divider sx={{ my: 2, borderColor: 'rgba(173, 20, 87, 0.2)' }} />
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Buyer Name" value={voucher.buyerName} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Buyer Phone" value={voucher.buyerPhoneNumber} />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Service Type" value={voucher.serviceType} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Account Category" value={voucher.accountCategory} />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Account Username" value={voucher.accountUserName} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Payment Method" value={voucher.paymentMethod} />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Payment Date" value={voucher.paymentDate} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Voucher ID" value={safeVoucherId} />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <SlipField label="Amount Paid" value={fCurrency(voucher.amountPaid)} />
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
-              <SlipField label="Remark" value={voucher.remark || '-'} />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 2, borderColor: 'rgba(173, 20, 87, 0.2)' }} />
+          <Stack spacing={1.25} sx={{ mb: 2.25 }}>
+            <VoucherLine label="Received From" value={`${voucher.buyerName} (${voucher.buyerPhoneNumber})`} />
+            <VoucherLine label="Amount" value={amountPaid} />
+            <VoucherLine
+              label="For"
+              value={`${voucher.serviceType} / ${voucher.accountCategory} / ${voucher.remark || 'Voucher service'}`}
+            />
+            <VoucherLine label="Received by" value={voucher.accountUserName} />
+            <Typography variant="body2" sx={{ mt: 1.5, color: '#7a5032', lineHeight: 1.5 }}>
+              {THANK_YOU_LINE}
+            </Typography>
+          </Stack>
 
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            alignItems={{ xs: 'stretch', sm: 'center' }}
+            alignItems={{ xs: 'stretch', sm: 'flex-end' }}
             justifyContent="space-between"
-            spacing={1.25}
+            spacing={2}
           >
-            <Typography variant="body2" sx={{ color: '#6a1b4d' }}>
-              Payment Summary
-            </Typography>
-            <Box
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 1.5,
-                background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)',
-                border: '1px solid #f48fb1',
-                maxWidth: '100%',
-                alignSelf: { xs: 'flex-end', sm: 'auto' },
-              }}
-            >
-              <Typography
-                variant="h5"
-                sx={{ color: '#880e4f', wordBreak: 'break-word', textAlign: 'right' }}
-              >
-                {fCurrency(voucher.amountPaid)}
+            <Box sx={{ width: { xs: '100%', sm: 320 }, border: '1px solid #e8b89a', bgcolor: '#fff' }}>
+              <BalanceRow label="Amount of Balance" value={amountPaid} />
+              <BalanceRow label="Payment Amount" value={amountPaid} />
+            </Box>
+
+            <Box sx={{ width: { xs: '100%', sm: 240 } }}>
+              <Typography variant="body2" sx={{ color: '#7a3f1f', fontWeight: 700, mb: 0.75 }}>
+                Payment Method :
               </Typography>
+              <Stack spacing={0.5} sx={{ mb: 1 }}>
+                <PaymentOption
+                  label="K Pay"
+                  checked={isMethodSelected(voucher.paymentMethod, 'k pay')}
+                />
+                <PaymentOption
+                  label="Wave Pay"
+                  checked={isMethodSelected(voucher.paymentMethod, 'wave pay')}
+                />
+                <PaymentOption
+                  label="Thai Bhat"
+                  checked={isMethodSelected(voucher.paymentMethod, 'thai bhat')}
+                />
+                <PaymentOption label="Cash" checked={isMethodSelected(voucher.paymentMethod, 'cash')} />
+              </Stack>
             </Box>
           </Stack>
         </Box>
@@ -284,26 +240,101 @@ type SlipFieldProps = {
   value: string;
 };
 
-function SlipField({ label, value }: SlipFieldProps) {
+function VoucherLine({ label, value }: SlipFieldProps) {
   return (
-    <Box
-      sx={{
-        p: 1.5,
-        borderRadius: 1.5,
-        border: '1px dashed',
-        borderColor: '#f48fb1',
-        backgroundColor: 'rgba(255, 255, 255, 0.72)',
-        minHeight: 72,
-      }}
-    >
-      <Typography variant="caption" sx={{ color: '#ad1457', display: 'block', fontWeight: 700 }}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ minHeight: 28 }}>
+      <Typography variant="body2" sx={{ width: 112, color: '#7a3f1f', fontWeight: 700, flexShrink: 0 }}>
         {label}
       </Typography>
-      <Typography variant="body1" sx={{ mt: 0.75, color: '#4a1450', wordBreak: 'break-word' }}>
+      <Typography variant="body2" sx={{ color: '#7a3f1f', fontWeight: 700, flexShrink: 0 }}>
+        :
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          flexGrow: 1,
+          color: '#5e3b27',
+          borderBottom: '1px dotted #e4b799',
+          pb: 0.25,
+          lineHeight: 1.3,
+          wordBreak: 'break-word',
+        }}
+      >
+        {value || '-'}
+      </Typography>
+    </Stack>
+  );
+}
+
+type BalanceRowProps = {
+  label: string;
+  value: string;
+};
+
+function BalanceRow({ label, value }: BalanceRowProps) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      sx={{
+        minHeight: 34,
+        borderBottom: '1px solid #e8b89a',
+      }}
+    >
+      <Typography
+        variant="body2"
+        sx={{
+          px: 1,
+          py: 0.75,
+          width: '55%',
+          color: '#7a3f1f',
+          fontWeight: 700,
+          borderRight: '1px solid #e8b89a',
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ px: 1, py: 0.75, width: '45%', color: '#5e3b27', fontWeight: 700 }}>
         {value}
       </Typography>
-    </Box>
+    </Stack>
   );
+}
+
+type PaymentOptionProps = {
+  label: string;
+  checked: boolean;
+};
+
+function PaymentOption({ label, checked }: PaymentOptionProps) {
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.75}>
+      <Box
+        sx={{
+          width: 16,
+          height: 16,
+          border: '1px solid #d7a586',
+          bgcolor: checked ? '#e6a67f' : '#fff',
+          color: '#fff',
+          fontSize: 11,
+          lineHeight: '14px',
+          textAlign: 'center',
+          fontWeight: 800,
+        }}
+      >
+        {checked ? 'x' : ''}
+      </Box>
+      <Typography variant="body2" sx={{ color: '#5e3b27' }}>
+        {label}
+      </Typography>
+    </Stack>
+  );
+}
+
+function isMethodSelected(method: string, option: string) {
+  const normalizedMethod = String(method || '').toLowerCase();
+  const normalizedOption = String(option || '').toLowerCase();
+  return normalizedMethod.includes(normalizedOption);
 }
 
 async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: string) {
@@ -312,7 +343,7 @@ async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: str
   }
 
   const canvas = await html2canvas(target, {
-    backgroundColor: '#fff7fb',
+    backgroundColor: '#fffaf7',
     scale: 2,
     useCORS: true,
     windowWidth: document.documentElement.clientWidth,
@@ -321,7 +352,7 @@ async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: str
 
   const imageData = canvas.toDataURL('image/png');
   const pdf = new jsPDF({
-    orientation: 'portrait',
+    orientation: 'landscape',
     unit: 'mm',
     format: 'a5',
     compress: true,
@@ -335,7 +366,6 @@ async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: str
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  // Fit captured slip into A5 page while preserving aspect ratio.
   let renderWidth = pageWidth;
   let renderHeight = (canvas.height * renderWidth) / canvas.width;
 
@@ -367,4 +397,39 @@ function getSafeVoucherId(input: string): string {
 
 function sanitizeFileName(input: string): string {
   return input.replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+function formatMmk(value: number): string {
+  const amount = Number(value || 0);
+  return `${amount.toLocaleString('en-US')} MMK`;
+}
+
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+async function trySharePdf(blob: Blob, fileName: string): Promise<boolean> {
+  if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
+
+  try {
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: fileName });
+      return true;
+    }
+  } catch (error) {
+    console.warn('Native share failed, falling back to open PDF.', error);
+  }
+
+  return false;
+}
+
+function openPdfBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
 }
