@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { useRef } from 'react';
 import html2canvas from 'html2canvas';
 
 import Box from '@mui/material/Box';
@@ -31,23 +32,34 @@ const BRAND = {
 };
 
 export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogProps) {
+  const slipRef = useRef<HTMLDivElement | null>(null);
+
   if (!voucher) return null;
 
   const safeVoucherId = getSafeVoucherId(voucher.id);
+  const safeDescription = getSafeDescription(voucher);
 
   const handlePreviewPdf = async () => {
-    const { blob } = await generateSlipPdf(voucher, safeVoucherId);
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    try {
+      const { blob } = await generateSlipPdf(slipRef.current, safeVoucherId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
 
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 60000);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+    } catch (error) {
+      console.error('Failed to preview voucher PDF:', error);
+    }
   };
 
   const handleDownloadPdf = async () => {
-    const { pdf } = await generateSlipPdf(voucher, safeVoucherId);
-    pdf.save(`voucher-${sanitizeFileName(safeVoucherId)}.pdf`);
+    try {
+      const { pdf } = await generateSlipPdf(slipRef.current, safeVoucherId);
+      pdf.save(`voucher-${sanitizeFileName(safeVoucherId)}.pdf`);
+    } catch (error) {
+      console.error('Failed to download voucher PDF:', error);
+    }
   };
 
   return (
@@ -56,6 +68,7 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
 
       <DialogContent sx={{ pb: 3 }}>
         <Box
+          ref={slipRef}
           sx={{
             p: 3,
             borderRadius: 3,
@@ -137,7 +150,8 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
                   borderRadius: 1.75,
                   bgcolor: '#fff',
                   border: '1px solid rgba(255, 255, 255, 0.5)',
-                  minWidth: { xs: 230, sm: 260 },
+                  width: { xs: '100%', sm: 'auto' },
+                  maxWidth: 320,
                   boxShadow: '0 8px 18px rgba(122, 7, 62, 0.25)',
                 }}
               >
@@ -210,7 +224,15 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
               <SlipField label="Payment Date" value={voucher.paymentDate} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
+              <SlipField label="Voucher ID" value={safeVoucherId} />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
               <SlipField label="Amount Paid" value={fCurrency(voucher.amountPaid)} />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <SlipField label="Description" value={safeDescription} />
             </Grid>
 
             <Grid size={{ xs: 12 }}>
@@ -220,7 +242,12 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
 
           <Divider sx={{ my: 2, borderColor: 'rgba(173, 20, 87, 0.2)' }} />
 
-          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            justifyContent="space-between"
+            spacing={1.25}
+          >
             <Typography variant="body2" sx={{ color: '#6a1b4d' }}>
               Payment Summary
             </Typography>
@@ -231,9 +258,14 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
                 borderRadius: 1.5,
                 background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)',
                 border: '1px solid #f48fb1',
+                maxWidth: '100%',
+                alignSelf: { xs: 'flex-end', sm: 'auto' },
               }}
             >
-              <Typography variant="h5" sx={{ color: '#880e4f' }}>
+              <Typography
+                variant="h5"
+                sx={{ color: '#880e4f', wordBreak: 'break-word', textAlign: 'right' }}
+              >
                 {fCurrency(voucher.amountPaid)}
               </Typography>
             </Box>
@@ -280,34 +312,18 @@ function SlipField({ label, value }: SlipFieldProps) {
   );
 }
 
-const A5_WIDTH_MM = 148;
-const A5_HEIGHT_MM = 210;
-// A5 at ~96 DPI (portrait)
-const A5_WIDTH_PX = 559;
-const A5_HEIGHT_PX = Math.round((A5_WIDTH_PX * A5_HEIGHT_MM) / A5_WIDTH_MM);
+async function generateSlipPdf(target: HTMLDivElement | null, safeVoucherId: string) {
+  if (!target) {
+    throw new Error('Voucher slip content is not ready yet.');
+  }
 
-async function generateSlipPdf(voucher: VoucherProps, safeVoucherId: string) {
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-10000px';
-  container.style.top = '0';
-  container.style.width = `${A5_WIDTH_PX}px`;
-  container.style.height = `${A5_HEIGHT_PX}px`;
-  container.style.background = '#fff';
-  container.innerHTML = buildSlipPrintHtml(voucher, safeVoucherId);
-  document.body.appendChild(container);
-
-  const canvas = await html2canvas(container, {
+  const canvas = await html2canvas(target, {
     backgroundColor: '#fff7fb',
     scale: 2,
     useCORS: true,
-    width: A5_WIDTH_PX,
-    height: A5_HEIGHT_PX,
-    windowWidth: A5_WIDTH_PX,
-    windowHeight: A5_HEIGHT_PX,
+    windowWidth: document.documentElement.clientWidth,
+    windowHeight: document.documentElement.clientHeight,
   });
-
-  document.body.removeChild(container);
 
   const imageData = canvas.toDataURL('image/png');
   const pdf = new jsPDF({
@@ -322,186 +338,25 @@ async function generateSlipPdf(voucher: VoucherProps, safeVoucherId: string) {
     subject: 'Voucher Slip (A5)',
   });
 
-  pdf.addImage(imageData, 'PNG', 0, 0, A5_WIDTH_MM, A5_HEIGHT_MM);
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  // Fit captured slip into A5 page while preserving aspect ratio.
+  let renderWidth = pageWidth;
+  let renderHeight = (canvas.height * renderWidth) / canvas.width;
+
+  if (renderHeight > pageHeight) {
+    renderHeight = pageHeight;
+    renderWidth = (canvas.width * renderHeight) / canvas.height;
+  }
+
+  const x = (pageWidth - renderWidth) / 2;
+  const y = (pageHeight - renderHeight) / 2;
+
+  pdf.addImage(imageData, 'PNG', x, y, renderWidth, renderHeight);
   const blob = pdf.output('blob');
 
   return { pdf, blob };
-}
-
-function buildSlipPrintHtml(voucher: VoucherProps, voucherId: string): string {
-  const amountPaid = fCurrency(voucher.amountPaid);
-
-  return `<style>
-      * { box-sizing: border-box; }
-      .print-root {
-        margin: 0;
-        padding: 18px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #fff7fb;
-        color: #4a1450;
-        width: ${A5_WIDTH_PX}px;
-        height: ${A5_HEIGHT_PX}px;
-      }
-      .sheet {
-        width: 100%;
-        height: 100%;
-        margin: 0 auto;
-        border: 1px solid #f8bbd0;
-        border-radius: 16px;
-        overflow: hidden;
-        background: linear-gradient(180deg, #fff7fb 0%, #ffe4f0 45%, #ffd7e8 100%);
-      }
-      .header {
-        padding: 16px;
-        text-align: center;
-        color: #fff;
-        background: linear-gradient(135deg, #ec407a 0%, #d81b60 60%, #ad1457 100%);
-      }
-      .logo-wrap {
-        display: inline-block;
-        padding: 10px 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        background: rgba(255, 255, 255, 0.16);
-      }
-      .logo {
-        width: 160px;
-        height: 56px;
-        object-fit: contain;
-        display: block;
-      }
-      .brand-title {
-        margin: 10px 0 3px;
-        font-size: 20px;
-        font-weight: 700;
-      }
-      .brand-desc {
-        margin: 0 auto;
-        max-width: 560px;
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-      .voucher-id {
-        display: inline-block;
-        margin-top: 10px;
-        padding: 8px 12px;
-        min-width: 220px;
-        border-radius: 14px;
-        background: #fff;
-        color: #880e4f;
-        box-shadow: 0 8px 18px rgba(122, 7, 62, 0.25);
-      }
-      .voucher-id-label {
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        font-size: 11px;
-        font-weight: 700;
-        color: #ad1457;
-      }
-      .voucher-id-value {
-        margin-top: 4px;
-        font-family: monospace;
-        letter-spacing: 0.5px;
-        font-size: 14px;
-        font-weight: 800;
-        word-break: break-all;
-      }
-      .content {
-        padding: 16px;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-      .field {
-        border: 1px dashed #f48fb1;
-        background: rgba(255, 255, 255, 0.72);
-        border-radius: 10px;
-        min-height: 64px;
-        padding: 10px;
-      }
-      .field.full {
-        grid-column: 1 / -1;
-      }
-      .label {
-        color: #ad1457;
-        font-size: 12px;
-        font-weight: 700;
-      }
-      .value {
-        margin-top: 4px;
-        color: #4a1450;
-        font-size: 14px;
-        word-break: break-word;
-      }
-      .summary {
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(173, 20, 87, 0.2);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .summary-amount {
-        padding: 7px 10px;
-        border-radius: 10px;
-        border: 1px solid #f48fb1;
-        background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
-        color: #880e4f;
-        font-size: 22px;
-        font-weight: 700;
-      }
-    </style>
-    <main class="print-root">
-      <section class="sheet">
-      <section class="header">
-        <div class="logo-wrap">
-          <img class="logo" src="${masterLogo}" alt="Master logo" />
-        </div>
-        <h1 class="brand-title">${escapeHtml(BRAND.name)}</h1>
-        <p class="brand-desc">${escapeHtml(BRAND.description)}</p>
-        <div class="voucher-id">
-          <div class="voucher-id-label">Voucher ID</div>
-          <div class="voucher-id-value">${escapeHtml(voucherId)}</div>
-        </div>
-      </section>
-
-      <section class="content">
-        <div class="grid">
-          ${renderField('Buyer Name', voucher.buyerName)}
-          ${renderField('Buyer Phone', voucher.buyerPhoneNumber)}
-          ${renderField('Service Type', voucher.serviceType)}
-          ${renderField('Account Category', voucher.accountCategory)}
-          ${renderField('Account Username', voucher.accountUserName)}
-          ${renderField('Payment Method', voucher.paymentMethod)}
-          ${renderField('Payment Date', voucher.paymentDate)}
-          ${renderField('Voucher ID', voucherId)}
-          ${renderField('Amount Paid', amountPaid)}
-          ${renderField('Remark', voucher.remark || '-', true)}
-        </div>
-
-        <div class="summary">
-          <div>Payment Summary</div>
-          <div class="summary-amount">${escapeHtml(amountPaid)}</div>
-        </div>
-      </section>
-      </section>
-    </main>`;
-}
-
-function renderField(label: string, value: string, full = false): string {
-  return `<div class="field${full ? ' full' : ''}"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`;
-}
-
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function getSafeVoucherId(input: string): string {
@@ -514,6 +369,17 @@ function getSafeVoucherId(input: string): string {
   }
 
   return value;
+}
+
+function getSafeDescription(voucher: VoucherProps): string {
+  const payload = voucher as unknown as Record<string, unknown>;
+  const value = payload.description ?? payload.desc ?? voucher.remark ?? '';
+
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+
+  return '-';
 }
 
 function sanitizeFileName(input: string): string {

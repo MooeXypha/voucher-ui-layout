@@ -28,11 +28,6 @@ function getDevFallbackBaseUrl() {
 
 const BASE_URL = normalizeBaseUrl(RAW_BASE_URL) || getDevFallbackBaseUrl();
 
-function resolveRequestUrl(path) {
-  if (!BASE_URL) return path;
-  return new URL(path, BASE_URL).toString();
-}
-
 function resolveCandidateBaseUrls() {
   const baseUrls = [];
 
