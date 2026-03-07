@@ -62,19 +62,30 @@ function resolveCandidatePaths(path) {
   const isApiPath = normalizedPath.startsWith('/api/');
   const pathWithoutApi = isApiPath ? normalizedPath.replace(/^\/api/, '') : normalizedPath;
 
-  let singularOrPluralVariant = pathWithoutApi;
+  const resourceVariants = new Set([pathWithoutApi]);
+
   if (/^\/vouchers(\/|$)/.test(pathWithoutApi)) {
-    singularOrPluralVariant = pathWithoutApi.replace(/^\/vouchers(\/|$)/, '/voucher$1');
-  } else if (/^\/voucher(\/|$)/.test(pathWithoutApi)) {
-    singularOrPluralVariant = pathWithoutApi.replace(/^\/voucher(\/|$)/, '/vouchers$1');
+    resourceVariants.add(pathWithoutApi.replace(/^\/vouchers(\/|$)/, '/voucher$1'));
   }
 
-  const candidates = [
-    normalizedPath,
-    isApiPath ? pathWithoutApi : `/api${pathWithoutApi}`,
-    singularOrPluralVariant,
-    `/api${singularOrPluralVariant}`,
-  ];
+  if (/^\/voucher(\/|$)/.test(pathWithoutApi)) {
+    resourceVariants.add(pathWithoutApi.replace(/^\/voucher(\/|$)/, '/vouchers$1'));
+  }
+
+  const commonApiPrefixes = ['', '/api', '/api/v1', '/v1'];
+  const candidates = [normalizedPath];
+
+  for (const variant of resourceVariants) {
+    for (const prefix of commonApiPrefixes) {
+      const joined = `${prefix}${variant}`.replace(/\/+/g, '/');
+      candidates.push(joined.startsWith('/') ? joined : `/${joined}`);
+    }
+  }
+
+  // Keep explicit path variant early for faster success in already-correct setups.
+  if (!isApiPath) {
+    candidates.unshift(`/api${pathWithoutApi}`);
+  }
 
   return Array.from(new Set(candidates));
 }
@@ -82,6 +93,7 @@ function resolveCandidatePaths(path) {
 async function request(method, path, { params, data } = {}) {
   const candidatePaths = resolveCandidatePaths(path);
   const candidateBaseUrls = resolveCandidateBaseUrls();
+  const attemptedUrls = [];
   let lastError;
 
   for (const candidateBaseUrl of candidateBaseUrls) {
@@ -91,6 +103,7 @@ async function request(method, path, { params, data } = {}) {
         : candidatePath;
 
       const requestUrl = new URL(absolutePath, window.location.origin);
+      attemptedUrls.push(requestUrl.toString());
 
       if (params && typeof params === 'object') {
         Object.entries(params).forEach(([key, value]) => {
@@ -147,6 +160,14 @@ async function request(method, path, { params, data } = {}) {
   }
 
   if (lastError instanceof Error) {
+    const details = attemptedUrls.length
+      ? ` Tried: ${attemptedUrls.slice(0, 6).join(' | ')}${attemptedUrls.length > 6 ? ' | ...' : ''}`
+      : '';
+
+    if (lastError.message) {
+      throw new Error(`${lastError.message}.${details}`.trim());
+    }
+
     throw lastError;
   }
 
