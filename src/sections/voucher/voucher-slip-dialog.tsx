@@ -37,8 +37,6 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
   if (!voucher) return null;
 
   const safeVoucherId = getSafeVoucherId(voucher.id);
-  const safeDescription = getSafeDescription(voucher);
-
   const handlePreviewPdf = async () => {
     try {
       const { blob } = await generateSlipPdf(slipRef.current, safeVoucherId);
@@ -232,10 +230,6 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <SlipField label="Description" value={safeDescription} />
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
               <SlipField label="Remark" value={voucher.remark || '-'} />
             </Grid>
           </Grid>
@@ -369,17 +363,6 @@ function getSafeVoucherId(input: string): string {
   }
 
   return value;
-}
-
-function getSafeDescription(voucher: VoucherProps): string {
-  const payload = voucher as unknown as Record<string, unknown>;
-  const value = payload.description ?? payload.desc ?? voucher.remark ?? '';
-
-  if (typeof value === 'string' && value.trim()) {
-    return value;
-  }
-
-  return '-';
 }
 
 function sanitizeFileName(input: string): string {
