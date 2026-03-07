@@ -61,6 +61,8 @@ export function VoucherTableRow({
           <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
         </TableCell>
 
+        <TableCell>{row.id}</TableCell>
+
         <TableCell component="th" scope="row">
           {row.buyerName}
         </TableCell>

@@ -15,7 +15,9 @@ function normalizeBaseUrl(value) {
   return `https://${value}`.replace(/\/+$/, '');
 }
 
-const BASE_URL = normalizeBaseUrl(RAW_BASE_URL);
+const BASE_URL =
+  normalizeBaseUrl(RAW_BASE_URL) ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 function extractErrorMessage(responseData) {
   if (typeof responseData === 'string' && responseData.trim()) return responseData;
@@ -25,11 +27,9 @@ function extractErrorMessage(responseData) {
     if (typeof responseData.message === 'string' && responseData.message.trim()) {
       return responseData.message;
     }
-
     if (Array.isArray(responseData.message)) {
       return responseData.message.join(', ');
     }
-
     if (typeof responseData.error === 'string' && responseData.error.trim()) {
       return responseData.error;
     }
@@ -51,6 +51,7 @@ async function request(method, path, { params, data } = {}) {
     throw new Error('VITE_API_URL is missing');
   }
 
+  const normalizedMethod = String(method).toUpperCase();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const requestUrl = new URL(`${BASE_URL}${normalizedPath}`);
 
@@ -61,7 +62,6 @@ async function request(method, path, { params, data } = {}) {
     });
   }
 
-  const normalizedMethod = String(method).toUpperCase();
   const hasBody = data !== undefined;
 
   const response = await fetch(requestUrl.toString(), {

@@ -233,7 +233,7 @@ export function VoucherView() {
               <TableBody>
                 {isLoading && vouchers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={12} align="center">
+                    <TableCell colSpan={13} align="center">
                       Loading vouchers...
                     </TableCell>
                   </TableRow>

@@ -16,6 +16,7 @@ export type VoucherHeadLabel = {
 };
 
 const headLabel: VoucherHeadLabel[] = [
+  { id: 'id', label: 'Voucher ID' },
   { id: 'buyerName', label: 'Buyer' },
   { id: 'buyerPhoneNumber', label: 'Phone' },
   { id: 'serviceType', label: 'Service' },

@@ -28,6 +28,32 @@ const serviceTypes = ['Account Sell', 'Account Service', 'Account Bank Service',
 const accountCategories = ['Over 15k', 'Under 15k', 'Other Service'];
 const paymentMethods = ['K Pay', 'Wave Pay', 'Thai Bhat', 'Cash'];
 
+const normalizePhoneNumber = (value: string) =>
+  value
+    // Myanmar digits
+    .replace(/[\u1040-\u1049]/g, (digit) => String(digit.charCodeAt(0) - 0x1040))
+    // Full-width digits
+    .replace(/[\uFF10-\uFF19]/g, (digit) => String(digit.charCodeAt(0) - 0xff10))
+    .trim();
+
+const formatDateInput = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const toDateInputValue = (value: string) => {
+  if (!value) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const datePart = value.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return formatDateInput(parsed);
+};
+
 const emptyFormData = {
   buyerName: '',
   buyerPhoneNumber: '',
@@ -65,7 +91,7 @@ export function VoucherCreateForm({
         amountPaid: String(initialData.amountPaid),
         prepaid: initialData.prepaid,
         paymentMethod: initialData.paymentMethod,
-        paymentDate: initialData.paymentDate,
+        paymentDate: toDateInputValue(initialData.paymentDate),
         remark: initialData.remark || '',
       });
     } else {
@@ -87,13 +113,14 @@ export function VoucherCreateForm({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
+    const normalizedPhone = normalizePhoneNumber(formData.buyerPhoneNumber);
 
     if (!formData.buyerName.trim()) newErrors.buyerName = 'Buyer name is required';
     if (formData.buyerName.length > 100) newErrors.buyerName = 'Buyer name too long';
 
     const phoneRegex = /^(09|\+959)\d{7,9}$/;
-    if (!formData.buyerPhoneNumber.trim()) newErrors.buyerPhoneNumber = 'Phone number is required';
-    else if (!phoneRegex.test(formData.buyerPhoneNumber)) newErrors.buyerPhoneNumber = 'Invalid phone format';
+    if (!normalizedPhone) newErrors.buyerPhoneNumber = 'Phone number is required';
+    else if (!phoneRegex.test(normalizedPhone)) newErrors.buyerPhoneNumber = 'Invalid phone format';
 
     if (!formData.serviceType) newErrors.serviceType = 'Service type is required';
     if (!formData.accountCategory) newErrors.accountCategory = 'Account category is required';
@@ -103,7 +130,20 @@ export function VoucherCreateForm({
     const amount = parseInt(formData.amountPaid, 10);
     if (isNaN(amount) || amount < 0) newErrors.amountPaid = 'Amount must be a positive number';
 
-    if (!formData.paymentDate) newErrors.paymentDate = 'Payment date is required';
+    if (!formData.paymentDate) {
+      newErrors.paymentDate = 'Payment date is required';
+    } else {
+      const selectedDate = new Date(`${formData.paymentDate}T00:00:00`);
+      if (Number.isNaN(selectedDate.getTime())) {
+        newErrors.paymentDate = 'Invalid payment date';
+      } else if (!initialData) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate.getTime() < today.getTime()) {
+          newErrors.paymentDate = 'Payment date cannot be in the past';
+        }
+      }
+    }
 
     if (formData.remark && formData.remark.length > 500) newErrors.remark = 'Remark too long';
 
@@ -114,9 +154,11 @@ export function VoucherCreateForm({
   const handleSubmit = () => {
     if (!validate()) return;
 
+    const normalizedPhone = normalizePhoneNumber(formData.buyerPhoneNumber);
+
     const voucher: Omit<VoucherProps, 'id'> = {
       buyerName: formData.buyerName,
-      buyerPhoneNumber: formData.buyerPhoneNumber,
+      buyerPhoneNumber: normalizedPhone,
       serviceType: formData.serviceType,
       accountCategory: formData.accountCategory,
       accountUserName: formData.accountUserName,
@@ -257,6 +299,7 @@ export function VoucherCreateForm({
               onChange={(e) => handleChange('paymentDate', e.target.value)}
               error={!!errors.paymentDate}
               helperText={errors.paymentDate}
+              inputProps={!initialData ? { min: formatDateInput(new Date()) } : undefined}
               InputLabelProps={{ shrink: true }}
               required
             />
