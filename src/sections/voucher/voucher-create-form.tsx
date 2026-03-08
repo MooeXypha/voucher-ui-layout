@@ -34,7 +34,17 @@ const normalizePhoneNumber = (value: string) =>
     .replace(/[\u1040-\u1049]/g, (digit) => String(digit.charCodeAt(0) - 0x1040))
     // Full-width digits
     .replace(/[\uFF10-\uFF19]/g, (digit) => String(digit.charCodeAt(0) - 0xff10))
+    // Convert international prefix 00 to +
+    .replace(/^\s*00/, '+')
+    // Remove common separators used in global phone formats
+    .replace(/[\s().-]/g, '')
     .trim();
+
+const isValidPhoneNumber = (value: string) => {
+  // Support E.164-style international numbers (+countrycode...) and local numeric numbers.
+  if (value.startsWith('+')) return /^\+[1-9]\d{6,14}$/.test(value);
+  return /^\d{7,15}$/.test(value);
+};
 
 const formatDateInput = (date: Date) => {
   const pad = (value: number) => String(value).padStart(2, '0');
@@ -118,9 +128,10 @@ export function VoucherCreateForm({
     if (!formData.buyerName.trim()) newErrors.buyerName = 'Buyer name is required';
     if (formData.buyerName.length > 100) newErrors.buyerName = 'Buyer name too long';
 
-    const phoneRegex = /^(09|\+959)\d{7,9}$/;
     if (!normalizedPhone) newErrors.buyerPhoneNumber = 'Phone number is required';
-    else if (!phoneRegex.test(normalizedPhone)) newErrors.buyerPhoneNumber = 'Invalid phone format';
+    else if (!isValidPhoneNumber(normalizedPhone)) {
+      newErrors.buyerPhoneNumber = 'Invalid phone format. Use local or international format (e.g. +14155552671)';
+    }
 
     if (!formData.serviceType) newErrors.serviceType = 'Service type is required';
     if (!formData.accountCategory) newErrors.accountCategory = 'Account category is required';
