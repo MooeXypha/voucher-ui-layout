@@ -41,9 +41,9 @@ const normalizePhoneNumber = (value: string) =>
     .trim();
 
 const isValidPhoneNumber = (value: string) => {
-  // Support E.164-style international numbers (+countrycode...) and local numeric numbers.
-  if (value.startsWith('+')) return /^\+[1-9]\d{6,14}$/.test(value);
-  return /^\d{7,15}$/.test(value);
+  // Keep client-side validation permissive for global regions; backend handles final validation.
+  if (value.startsWith('+')) return /^\+\d{6,20}$/.test(value);
+  return /^\d{6,20}$/.test(value);
 };
 
 const formatDateInput = (date: Date) => {
@@ -130,7 +130,7 @@ export function VoucherCreateForm({
 
     if (!normalizedPhone) newErrors.buyerPhoneNumber = 'Phone number is required';
     else if (!isValidPhoneNumber(normalizedPhone)) {
-      newErrors.buyerPhoneNumber = 'Invalid phone format. Use local or international format (e.g. +14155552671)';
+      newErrors.buyerPhoneNumber = 'Invalid phone format. Use a valid local or international number';
     }
 
     if (!formData.serviceType) newErrors.serviceType = 'Service type is required';

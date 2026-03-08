@@ -97,59 +97,23 @@ async function request(method, path, { params, data } = {}) {
   };
 }
 
-function buildVoucherPayload(data, { includeCamelPhoneKey = true } = {}) {
+function buildVoucherPayload(data) {
   if (!data || typeof data !== 'object') return data;
 
   const { buyerPhoneNumber, ...rest } = data;
   const normalizedPhone = String(buyerPhoneNumber || '').trim();
 
-  if (!normalizedPhone) {
-    return includeCamelPhoneKey ? { ...rest, buyerPhoneNumber: normalizedPhone } : { ...rest };
-  }
-
   return {
     ...rest,
-    ...(includeCamelPhoneKey ? { buyerPhoneNumber: normalizedPhone } : {}),
-    // Backends may use snake_case or generic phone key naming.
-    buyer_phone_number: normalizedPhone,
-    phone: normalizedPhone,
+    buyerPhoneNumber: normalizedPhone,
   };
-}
-
-function isPhoneFieldValidationError(error) {
-  const message = String(error?.message || '').toLowerCase();
-  return (
-    message.includes('buyerphonenumber') &&
-    (message.includes('invalid') || message.includes('format') || message.includes('required'))
-  );
 }
 
 export const getVouchers = (params) => request('GET', '/vouchers', { params });
 export const getVoucherById = (id) => request('GET', `/vouchers/${id}`);
 
-export const createVoucher = async (data) => {
-  const payloadWithoutCamel = buildVoucherPayload(data, { includeCamelPhoneKey: false });
+export const createVoucher = (data) => request('POST', '/vouchers', { data: buildVoucherPayload(data) });
 
-  try {
-    return await request('POST', '/vouchers', { data: payloadWithoutCamel });
-  } catch (error) {
-    if (!isPhoneFieldValidationError(error)) throw error;
-
-    const payloadWithCamel = buildVoucherPayload(data, { includeCamelPhoneKey: true });
-    return request('POST', '/vouchers', { data: payloadWithCamel });
-  }
-};
-
-export const updateVoucher = async (id, data) => {
-  const payloadWithoutCamel = buildVoucherPayload(data, { includeCamelPhoneKey: false });
-
-  try {
-    return await request('PUT', `/vouchers/${id}`, { data: payloadWithoutCamel });
-  } catch (error) {
-    if (!isPhoneFieldValidationError(error)) throw error;
-
-    const payloadWithCamel = buildVoucherPayload(data, { includeCamelPhoneKey: true });
-    return request('PUT', `/vouchers/${id}`, { data: payloadWithCamel });
-  }
-};
+export const updateVoucher = (id, data) =>
+  request('PUT', `/vouchers/${id}`, { data: buildVoucherPayload(data) });
 export const deleteVoucher = (id) => request('DELETE', `/vouchers/${id}`);
