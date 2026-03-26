@@ -115,9 +115,9 @@ export function VoucherCreateForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
+      setErrors((prev: any) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -200,7 +200,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Buyer Name"
               value={formData.buyerName}
-              onChange={(e) => handleChange('buyerName', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('buyerName', e.target.value)}
               error={!!errors.buyerName}
               helperText={errors.buyerName}
               required
@@ -212,7 +212,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Buyer Phone Number"
               value={formData.buyerPhoneNumber}
-              onChange={(e) => handleChange('buyerPhoneNumber', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('buyerPhoneNumber', e.target.value)}
               error={!!errors.buyerPhoneNumber}
               helperText={errors.buyerPhoneNumber}
               required
@@ -225,7 +225,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Service Type"
               value={formData.serviceType}
-              onChange={(e) => handleChange('serviceType', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('serviceType', e.target.value)}
               error={!!errors.serviceType}
               helperText={errors.serviceType}
               required
@@ -244,7 +244,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Account Category"
               value={formData.accountCategory}
-              onChange={(e) => handleChange('accountCategory', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('accountCategory', e.target.value)}
               error={!!errors.accountCategory}
               helperText={errors.accountCategory}
               required
@@ -262,7 +262,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Account Username"
               value={formData.accountUserName}
-              onChange={(e) => handleChange('accountUserName', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('accountUserName', e.target.value)}
               error={!!errors.accountUserName}
               helperText={errors.accountUserName}
               required
@@ -275,7 +275,7 @@ export function VoucherCreateForm({
               label="Amount Paid"
               type="number"
               value={formData.amountPaid}
-              onChange={(e) => handleChange('amountPaid', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('amountPaid', e.target.value)}
               error={!!errors.amountPaid}
               helperText={errors.amountPaid}
               required
@@ -288,7 +288,7 @@ export function VoucherCreateForm({
               fullWidth
               label="Payment Method"
               value={formData.paymentMethod}
-              onChange={(e) => handleChange('paymentMethod', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('paymentMethod', e.target.value)}
               error={!!errors.paymentMethod}
               helperText={errors.paymentMethod}
               required
@@ -307,7 +307,7 @@ export function VoucherCreateForm({
               label="Payment Date"
               type="date"
               value={formData.paymentDate}
-              onChange={(e) => handleChange('paymentDate', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('paymentDate', e.target.value)}
               error={!!errors.paymentDate}
               helperText={errors.paymentDate}
               inputProps={!initialData ? { min: formatDateInput(new Date()) } : undefined}
@@ -321,7 +321,7 @@ export function VoucherCreateForm({
               control={
                 <Checkbox
                   checked={formData.prepaid}
-                  onChange={(e) => handleChange('prepaid', e.target.checked)}
+                  onChange={(e: { target: { checked: any; }; }) => handleChange('prepaid', e.target.checked)}
                 />
               }
               label="Prepaid"
@@ -335,7 +335,7 @@ export function VoucherCreateForm({
               multiline
               rows={3}
               value={formData.remark}
-              onChange={(e) => handleChange('remark', e.target.value)}
+              onChange={(e: { target: { value: any; }; }) => handleChange('remark', e.target.value)}
               error={!!errors.remark}
               helperText={errors.remark}
             />
