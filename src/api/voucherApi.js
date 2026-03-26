@@ -1,4 +1,5 @@
 const RAW_BASE_URL = String(import.meta.env.VITE_API_URL || '').trim();
+const RAW_FALLBACK_URL = String(import.meta.env.VITE_API_FALLBACK_URL || '').trim();
 
 function normalizeBaseUrl(value) {
   if (!value) return '';
@@ -18,6 +19,8 @@ function normalizeBaseUrl(value) {
 const BASE_URL =
   normalizeBaseUrl(RAW_BASE_URL) ||
   (import.meta.env.DEV ? 'http://localhost:3000' : '');
+
+const FALLBACK_BASE_URL = normalizeBaseUrl(RAW_FALLBACK_URL);
 
 function extractErrorMessage(responseData) {
   if (typeof responseData === 'string' && responseData.trim()) return responseData;
@@ -64,14 +67,32 @@ async function request(method, path, { params, data } = {}) {
 
   const hasBody = data !== undefined;
 
-  const response = await fetch(requestUrl.toString(), {
+  const requestInit = {
     method: normalizedMethod,
     headers: {
       ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
     },
     ...(hasBody ? { body: JSON.stringify(data) } : {}),
     cache: 'no-store',
-  });
+  };
+
+  let response;
+
+  try {
+    response = await fetch(requestUrl.toString(), requestInit);
+  } catch (primaryError) {
+    const fallbackUrl = buildFallbackUrl(path, params);
+
+    if (fallbackUrl) {
+      try {
+        response = await fetch(fallbackUrl, requestInit);
+      } catch (fallbackError) {
+        throw buildNetworkError(requestUrl.toString(), primaryError, fallbackUrl, fallbackError);
+      }
+    } else {
+      throw buildNetworkError(requestUrl.toString(), primaryError);
+    }
+  }
 
   const contentType = response.headers.get('content-type') || '';
   const responseText = response.status === 204 ? '' : await response.text();
@@ -95,6 +116,38 @@ async function request(method, path, { params, data } = {}) {
     data: responseData,
     status: response.status,
   };
+}
+
+function buildFallbackUrl(path, params) {
+  if (!FALLBACK_BASE_URL || FALLBACK_BASE_URL === BASE_URL) return null;
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const fallbackUrl = new URL(`${FALLBACK_BASE_URL}${normalizedPath}`);
+
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      fallbackUrl.searchParams.append(key, String(value));
+    });
+  }
+
+  return fallbackUrl.toString();
+}
+
+function buildNetworkError(primaryUrl, primaryError, fallbackUrl, fallbackError) {
+  const primaryReason =
+    primaryError instanceof Error && primaryError.message ? primaryError.message : 'Unknown network error';
+
+  if (!fallbackUrl) {
+    return new Error(`Network request failed for ${primaryUrl}. ${primaryReason}`);
+  }
+
+  const fallbackReason =
+    fallbackError instanceof Error && fallbackError.message ? fallbackError.message : 'Unknown network error';
+
+  return new Error(
+    `Network request failed for ${primaryUrl} (${primaryReason}) and fallback ${fallbackUrl} (${fallbackReason}).`
+  );
 }
 
 function buildVoucherPayload(data) {
