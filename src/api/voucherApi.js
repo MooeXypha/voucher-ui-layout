@@ -1,5 +1,7 @@
 const RAW_BASE_URL = String(import.meta.env.VITE_API_URL || '').trim();
 const RAW_FALLBACK_URL = String(import.meta.env.VITE_API_FALLBACK_URL || '').trim();
+const DEFAULT_PRODUCTION_BASE_URL = 'https://voucher-admin-service.onrender.com';
+const DEPRECATED_BASE_URLS = new Set(['https://voucher-service-w60f.onrender.com']);
 
 function normalizeBaseUrl(value) {
   if (!value) return '';
@@ -16,11 +18,20 @@ function normalizeBaseUrl(value) {
   return `https://${value}`.replace(/\/+$/, '');
 }
 
-const BASE_URL =
-  normalizeBaseUrl(RAW_BASE_URL) ||
-  (import.meta.env.DEV ? 'http://localhost:3000' : '');
+function resolveBaseUrl(value) {
+  const normalizedValue = normalizeBaseUrl(value);
 
-const FALLBACK_BASE_URL = normalizeBaseUrl(RAW_FALLBACK_URL);
+  if (!normalizedValue) return '';
+  if (DEPRECATED_BASE_URLS.has(normalizedValue)) return DEFAULT_PRODUCTION_BASE_URL;
+
+  return normalizedValue;
+}
+
+const BASE_URL =
+  resolveBaseUrl(RAW_BASE_URL) ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : DEFAULT_PRODUCTION_BASE_URL);
+
+const FALLBACK_BASE_URL = resolveBaseUrl(RAW_FALLBACK_URL);
 
 function extractErrorMessage(responseData) {
   if (typeof responseData === 'string' && responseData.trim()) return responseData;
