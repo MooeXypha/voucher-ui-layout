@@ -394,11 +394,13 @@ function mapVoucherRow(item: unknown): VoucherProps | null {
 
   const row = item as Record<string, unknown>;
   const buyerName = getString(row, ['buyerName', 'buyer_name']) || '-';
-  const buyerPhoneNumber = getString(row, ['buyerPhoneNumber', 'buyer_phone_number', 'phone']) || '-';
+  const buyerPhoneNumber =
+    getString(row, ['buyerPhoneNumber', 'buyerPhoneNo', 'buyer_phone_number', 'buyer_phone_no', 'phone']) ||
+    '-';
   const serviceType = getString(row, ['serviceType', 'service_type']) || '-';
   const accountCategory = getString(row, ['accountCategory', 'account_category']) || '-';
   const accountUserName =
-    getString(row, ['accountUserName', 'account_username', 'accountUsrName', 'account_usr_name']) ||
+    getString(row, ['accountUserName', 'accountUsername', 'account_username', 'accountUsrName', 'account_usr_name']) ||
     '-';
 
   const id = String(row.id ?? row._id ?? row.voucherId ?? row.voucher_id ?? buyerName);
