@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
@@ -16,7 +18,22 @@ import { AnalyticsConversionRates } from '../analytics-conversion-rates';
 
 // ----------------------------------------------------------------------
 
+
+
 export function OverviewAnalyticsView() {
+  const [incomeData, setIncomeData] = useState<{ total: number; categories: string[]; series: number[] }>({
+    total: 0,
+    categories: [],
+    series: [],
+  });
+
+  useEffect(() => {
+    fetch('https://voucher-admin-service.onrender.com/voucher/total-income')
+      .then((r) => r.json())
+      .then((data) => setIncomeData(data))
+      .catch(console.error);
+  }, []);
+
   return (
     <DashboardContent maxWidth="xl">
       <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
@@ -26,13 +43,13 @@ export function OverviewAnalyticsView() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Weekly sales"
+            title="Monthly Income"
             percent={2.6}
-            total={714000}
-            icon={<img alt="Weekly sales" src="/assets/icons/glass/ic-glass-bag.svg" />}
+            total={incomeData.total}
+            icon={<img alt="Monthly Income" src="/assets/icons/glass/ic-glass-bag.svg" />}
             chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [22, 8, 35, 50, 82, 84, 77, 12],
+              categories: incomeData.categories,
+              series: incomeData.series,
             }}
           />
         </Grid>
