@@ -18,7 +18,7 @@ import type { VoucherProps } from './voucher-table-row';
 type VoucherCreateFormProps = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (voucher: Omit<VoucherProps, 'id'>) => void;
+  onSubmit: (voucher: Omit<VoucherProps, 'id' | 'voucherNo'>) => void;
   initialData?: VoucherProps | null;
   title?: string;
   submitButtonText?: string;
@@ -167,7 +167,7 @@ export function VoucherCreateForm({
 
     const normalizedPhone = normalizePhoneNumber(formData.buyerPhoneNumber);
 
-    const voucher: Omit<VoucherProps, 'id'> = {
+    const voucher: Omit<VoucherProps, 'id' | 'voucherNo'> = {
       buyerName: formData.buyerName,
       buyerPhoneNumber: normalizedPhone,
       serviceType: formData.serviceType,

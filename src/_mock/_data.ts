@@ -52,6 +52,7 @@ export const _vouchers = [...Array(24)].map((_, index) => {
 
   return {
     id: _id(index),
+    voucherNo: `PBV-mock-${String(setIndex).padStart(4, '0')}`,
     buyerName: _fullName(index),
     buyerPhoneNumber: `${phonePrefix}${Math.floor(1000000 + Math.random() * 9000000)}`,
     serviceType: ['Internet', 'Mobile', 'Cable', 'Electricity'][index % 4],

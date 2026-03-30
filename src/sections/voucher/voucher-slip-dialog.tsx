@@ -35,7 +35,7 @@ export function VoucherSlipDialog({ open, onClose, voucher }: VoucherSlipDialogP
 
   if (!voucher) return null;
 
-  const safeVoucherId = getSafeVoucherId(voucher.id);
+  const safeVoucherId = getSafeVoucherId(voucher.voucherNo || voucher.id);
   const amountPaid = formatMmk(voucher.amountPaid);
 
   const handlePreviewPdf = async () => {

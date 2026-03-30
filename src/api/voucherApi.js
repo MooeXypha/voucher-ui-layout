@@ -53,7 +53,11 @@ async function request(method, path, { params, data } = {}) {
 function buildVoucherPayload(data) {
   if (!data || typeof data !== 'object') return data;
 
-  const { buyerPhoneNumber, accountUserName, ...rest } = data;
+  const sanitizedData = { ...data };
+  delete sanitizedData.voucherNo;
+  delete sanitizedData.voucher_no;
+
+  const { buyerPhoneNumber, accountUserName, ...rest } = sanitizedData;
   const normalizedPhone = String(buyerPhoneNumber || '').trim();
   const normalizedAccountUserName = String(accountUserName || '').trim();
 

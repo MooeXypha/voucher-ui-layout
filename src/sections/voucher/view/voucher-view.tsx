@@ -80,7 +80,7 @@ export function VoucherView() {
   const notFound = !dataFiltered.length && !!filterName;
 
   const handleCreateVoucher = useCallback(
-    async (newVoucher: Omit<VoucherProps, 'id'>) => {
+    async (newVoucher: Omit<VoucherProps, 'id' | 'voucherNo'>) => {
       try {
         const response = await createVoucher(newVoucher);
         const createdVoucher = mapVoucherRow(response.data);
@@ -101,7 +101,7 @@ export function VoucherView() {
   );
 
   const handleUpdateVoucher = useCallback(
-    async (updatedVoucher: Omit<VoucherProps, 'id'>) => {
+    async (updatedVoucher: Omit<VoucherProps, 'id' | 'voucherNo'>) => {
       if (!editingVoucher) return;
 
       try {
@@ -165,7 +165,7 @@ export function VoucherView() {
   }, []);
 
   const handleSubmitForm = useCallback(
-    async (voucher: Omit<VoucherProps, 'id'>) => {
+    async (voucher: Omit<VoucherProps, 'id' | 'voucherNo'>) => {
       if (editingVoucher) {
         await handleUpdateVoucher(voucher);
         return;
@@ -404,6 +404,8 @@ function mapVoucherRow(item: unknown): VoucherProps | null {
     '-';
 
   const id = String(row.id ?? row._id ?? row.voucherId ?? row.voucher_id ?? buyerName);
+  const voucherNo =
+    getOptionalString(row, ['voucherNo', 'voucher_no']) || undefined;
   const amountPaid = getNumber(row, ['amountPaid', 'amount_paid']);
   const prepaid = getBoolean(row, ['prepaid']);
   const paymentMethod = getString(row, ['paymentMethod', 'payment_method']) || '-';
@@ -412,6 +414,7 @@ function mapVoucherRow(item: unknown): VoucherProps | null {
 
   return {
     id,
+    voucherNo,
     buyerName,
     buyerPhoneNumber,
     serviceType,

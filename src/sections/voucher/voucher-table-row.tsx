@@ -15,6 +15,7 @@ import { Iconify } from 'src/components/iconify';
 
 export type VoucherProps = {
   id: string;
+  voucherNo?: string;
   buyerName: string;
   buyerPhoneNumber: string;
   serviceType: string;
@@ -61,7 +62,7 @@ export function VoucherTableRow({
           <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
         </TableCell>
 
-        <TableCell>{row.id}</TableCell>
+        <TableCell>{row.voucherNo || row.id}</TableCell>
 
         <TableCell component="th" scope="row">
           {row.buyerName}
